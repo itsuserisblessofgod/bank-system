@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v mvn)",
+      "Bash(command -v java)",
+      "Bash(java -version)",
+      "Bash(mvn -q -DskipTests compile)",
+      "Bash(mvn -q test)",
+      "Bash(mvn test *)",
+      "Bash(mvn -q test -Dtest=AdminSeedHashTest)",
+      "Bash(mvn -q test -Dtest=GenSeedHash)",
+      "Bash(npm install *)",
+      "Bash(npm run *)"
+    ]
+  }
+}
