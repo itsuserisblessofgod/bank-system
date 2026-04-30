@@ -51,6 +51,11 @@ export default function Dashboard() {
             <div className="font-mono text-sm text-slate-700">{a.accountNumber}</div>
             <div className="text-3xl font-bold mt-2">${Number(a.balance).toFixed(2)}</div>
             <div className="text-xs text-slate-500 mt-1">Daily limit: ${Number(a.dailyLimit).toFixed(2)}</div>
+            <div className="text-xs text-slate-400 mt-2 font-mono break-all cursor-pointer"
+         onClick={() => navigator.clipboard.writeText(a.id)}
+         title="Click to copy">
+      ID: {a.id} 📋
+    </div>
           </div>
         ))}
         {accounts.length === 0 && <div className="text-slate-500">No accounts yet — create one below.</div>}
