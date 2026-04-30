@@ -10,7 +10,8 @@
       "Bash(mvn -q test -Dtest=AdminSeedHashTest)",
       "Bash(mvn -q test -Dtest=GenSeedHash)",
       "Bash(npm install *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx vite *)"
     ]
   }
 }
