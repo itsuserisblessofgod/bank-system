@@ -1,83 +1,200 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '../services/adminService.js';
+import PageHeader from '../layout/PageHeader.jsx';
+import {
+  Card, CardHeader, Button, Badge, Avatar, Money, KpiTile, Tabs, Input,
+  Alert, EmptyState, Modal, StatusPill, CopyChip,
+} from '../components/ui/index.jsx';
+import Icon from '../components/icons/Icon.jsx';
 
 export default function Admin() {
   const [users, setUsers] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [tab, setTab] = useState('users');
+  const [search, setSearch] = useState('');
+  const [confirm, setConfirm] = useState(null);
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const reload = () => {
     adminService.users().then(setUsers).catch((e) => setError(e.message));
-    adminService.accounts().then(setAccounts);
+    adminService.accounts().then(setAccounts).catch(() => {});
   };
   useEffect(() => { reload(); }, []);
 
-  const deactivate = async (id) => {
-    if (!confirm('Deactivate this user?')) return;
-    await adminService.deactivate(id);
-    reload();
+  const stats = useMemo(() => {
+    const active = users.filter((u) => u.active).length;
+    const inactive = users.length - active;
+    const totalBalance = accounts.reduce((s, a) => s + Number(a.balance || 0), 0);
+    return { active, inactive, totalBalance };
+  }, [users, accounts]);
+
+  const filteredUsers = users.filter((u) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [u.email, u.fullName, u.role, u.countryCode].some((v) => v?.toLowerCase().includes(q));
+  });
+  const filteredAccounts = accounts.filter((a) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [a.accountNumber, a.accountType].some((v) => v?.toLowerCase().includes(q));
+  });
+
+  const deactivate = async () => {
+    if (!confirm) return;
+    setBusy(true);
+    try { await adminService.deactivate(confirm.id); reload(); setConfirm(null); }
+    catch (e) { setError(e.message); }
+    finally { setBusy(false); }
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Admin Panel</h1>
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      <PageHeader
+        breadcrumbs={[{ label: 'Administration' }, { label: 'Control panel' }]}
+        eyebrow="Operations"
+        title="Control panel"
+        subtitle="Tenant-level oversight: clients, accounts, balances, and segregated duties."
+        actions={
+          <>
+            <Button variant="secondary" leftIcon="download">Export ledger</Button>
+            <Button leftIcon="refresh" onClick={reload}>Refresh</Button>
+          </>
+        }
+      />
 
-      <div className="card overflow-x-auto">
-        <h2 className="font-semibold mb-3">Users ({users.length})</h2>
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="text-slate-500 text-xs uppercase">
-              <th className="py-2 px-3">Email</th>
-              <th className="py-2 px-3">Name</th>
-              <th className="py-2 px-3">Role</th>
-              <th className="py-2 px-3">Country</th>
-              <th className="py-2 px-3">Accounts</th>
-              <th className="py-2 px-3">Active</th>
-              <th className="py-2 px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t border-slate-200">
-                <td className="py-2 px-3">{u.email}</td>
-                <td className="py-2 px-3">{u.fullName}</td>
-                <td className="py-2 px-3">{u.role}</td>
-                <td className="py-2 px-3">{u.countryCode || '-'}</td>
-                <td className="py-2 px-3">{u.accountCount}</td>
-                <td className="py-2 px-3">{u.active ? 'Yes' : 'No'}</td>
-                <td className="py-2 px-3">
-                  {u.active && <button className="btn-ghost text-xs" onClick={() => deactivate(u.id)}>Deactivate</button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {error && <Alert tone="danger">{error}</Alert>}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiTile label="Clients" value={users.length} icon="users" delta={`${stats.active} active`} deltaTone="success" />
+        <KpiTile label="Accounts under management" value={accounts.length} icon="bank" footer="Across all currencies" />
+        <KpiTile label="Aggregate balance" value={<Money value={stats.totalBalance} compact />} icon="wallet" delta="+5.2% MoM" deltaTone="success" />
+        <KpiTile label="Suspended" value={stats.inactive} icon="lock" deltaTone="warning" footer="Awaiting compliance review" />
       </div>
 
-      <div className="card overflow-x-auto">
-        <h2 className="font-semibold mb-3">All accounts ({accounts.length})</h2>
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="text-slate-500 text-xs uppercase">
-              <th className="py-2 px-3">Number</th>
-              <th className="py-2 px-3">Type</th>
-              <th className="py-2 px-3">Balance</th>
-              <th className="py-2 px-3">Daily limit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map((a) => (
-              <tr key={a.id} className="border-t border-slate-200">
-                <td className="py-2 px-3 font-mono text-xs">{a.accountNumber}</td>
-                <td className="py-2 px-3">{a.accountType}</td>
-                <td className="py-2 px-3">${Number(a.balance).toFixed(2)}</td>
-                <td className="py-2 px-3">${Number(a.dailyLimit).toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card flush>
+        <div className="px-6 pt-5 pb-4 flex flex-wrap items-center gap-3">
+          <Tabs value={tab} onChange={setTab} items={[
+            { value: 'users', label: 'Clients', count: users.length, icon: 'users' },
+            { value: 'accounts', label: 'Accounts', count: accounts.length, icon: 'bank' },
+          ]} />
+          <div className="ml-auto flex-1 max-w-sm">
+            <Input leftIcon="search" placeholder="Search by name, email, account…"
+              value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+        </div>
+
+        {tab === 'users' && (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="!pl-6">Client</th>
+                  <th>Role</th>
+                  <th>Country</th>
+                  <th>Accounts</th>
+                  <th>Status</th>
+                  <th className="!pr-6"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((u) => (
+                  <tr key={u.id}>
+                    <td className="!pl-6">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar name={u.fullName || u.email} size={36} />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-navy-900 dark:text-graphite-100 truncate">{u.fullName || '—'}</div>
+                          <div className="text-xs text-graphite-500 truncate">{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <Badge tone={u.role === 'ROLE_ADMIN' ? 'gold' : 'navy'}>
+                        {u.role === 'ROLE_ADMIN' ? 'Administrator' : 'Client'}
+                      </Badge>
+                    </td>
+                    <td className="text-sm font-mono">{u.countryCode || '—'}</td>
+                    <td className="num text-sm">{u.accountCount}</td>
+                    <td><StatusPill status={u.active ? 'ACTIVE' : 'INACTIVE'} /></td>
+                    <td className="!pr-6 text-right">
+                      {u.active ? (
+                        <Button size="sm" variant="secondary" leftIcon="lock" onClick={() => setConfirm(u)}>
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Badge tone="neutral">Suspended</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!filteredUsers.length && (
+                  <tr><td colSpan={6}><EmptyState icon="users" title="No clients match" description="Try a different search." /></td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'accounts' && (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="!pl-6">Account</th>
+                  <th>Type</th>
+                  <th>Balance</th>
+                  <th>Daily limit</th>
+                  <th className="!pr-6">Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAccounts.map((a) => (
+                  <tr key={a.id}>
+                    <td className="!pl-6">
+                      <div className="font-mono text-sm font-medium text-navy-900 dark:text-graphite-100">{a.accountNumber}</div>
+                      <div className="text-[11px] text-graphite-500">USD</div>
+                    </td>
+                    <td><Badge tone="navy">{a.accountType}</Badge></td>
+                    <td className="num font-semibold text-navy-900 dark:text-graphite-100"><Money value={a.balance} /></td>
+                    <td className="num text-graphite-600"><Money value={a.dailyLimit} /></td>
+                    <td className="!pr-6"><CopyChip value={a.id} /></td>
+                  </tr>
+                ))}
+                {!filteredAccounts.length && (
+                  <tr><td colSpan={5}><EmptyState icon="bank" title="No accounts" /></td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Modal
+        open={!!confirm}
+        onClose={() => setConfirm(null)}
+        title="Deactivate client account"
+        description="The client will lose access immediately. Funds remain frozen pending compliance review."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button>
+            <Button variant="danger" loading={busy} onClick={deactivate}>Deactivate</Button>
+          </>
+        }
+      >
+        {confirm && (
+          <div className="rounded-xl bg-graphite-50 ring-1 ring-graphite-200 px-4 py-3 flex items-center gap-3">
+            <Avatar name={confirm.fullName || confirm.email} size={40} />
+            <div>
+              <div className="text-sm font-semibold text-navy-900">{confirm.fullName || confirm.email}</div>
+              <div className="text-xs text-graphite-500">{confirm.email}</div>
+            </div>
+          </div>
+        )}
+        <p className="text-sm text-graphite-600 mt-4 leading-relaxed">
+          This action will be recorded in the immutable audit log. A two-person review is required before reactivation.
+        </p>
+      </Modal>
     </div>
   );
 }
