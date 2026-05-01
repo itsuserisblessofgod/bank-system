@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import api from '../services/api.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 import AuthLayout from '../layout/AuthLayout.jsx';
 import { Button, Alert } from '../components/ui/index.jsx';
 import Icon from '../components/icons/Icon.jsx';
 
 export default function TwoFactor() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { auth, login } = useAuth();
+  const challengeId = location.state?.challengeId;
+  const remember = location.state?.remember ?? auth?.remember ?? true;
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -13,10 +19,15 @@ export default function TwoFactor() {
   const refs = useRef([]);
 
   useEffect(() => {
+    if (!challengeId) return undefined;
     refs.current[0]?.focus();
     const t = setInterval(() => setSeconds((s) => (s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [challengeId]);
+
+  if (!challengeId) {
+    return <Navigate to="/login" replace />;
+  }
 
   const setAt = (i, v) => {
     const next = [...code];
@@ -36,7 +47,7 @@ export default function TwoFactor() {
     refs.current[Math.min(txt.length, 5)]?.focus();
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError(null);
     if (code.some((c) => !c)) {
@@ -44,15 +55,25 @@ export default function TwoFactor() {
       return;
     }
     setBusy(true);
-    // The backend doesn't expose 2FA — this is a UX scaffold. Treat any code as valid demo.
-    setTimeout(() => { setBusy(false); navigate('/dashboard'); }, 600);
+    try {
+      const result = await api.post('/auth/2fa/verify', {
+        challengeId,
+        code: code.join(''),
+      });
+      login(result.data, remember);
+      navigate('/dashboard', { replace: true });
+    } catch (ex) {
+      setError(ex.response?.data?.message ?? 'Invalid code.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <AuthLayout
       title="Two-factor verification"
       subtitle="Enter the 6-digit code from your authenticator or hardware token."
-      footer={<>Trouble receiving codes? <Link to="#" className="text-navy-900 font-medium hover:underline">Use backup method</Link></>}
+      footer={<>Can't access your authenticator? <span className="text-navy-900 font-medium">Contact support</span></>}
     >
       <form onSubmit={submit} className="space-y-5">
         <div className="rounded-xl bg-navy-50 border border-navy-100 p-4 flex items-start gap-3">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import api from '../services/api.js';
 import PageHeader from '../layout/PageHeader.jsx';
 import {
   Card, CardHeader, Button, Switch, Field, Input, Select, Badge, Alert, Tabs,
@@ -24,6 +25,63 @@ export default function Settings() {
   const [theme, setTheme] = useState('system');
   const [currency, setCurrency] = useState('USD');
   const [language, setLanguage] = useState('en-US');
+  
+  // Password form state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [pwdBusy, setPwdBusy] = useState(false);
+  const [pwdError, setPwdError] = useState(null);
+  const [pwdSuccess, setPwdSuccess] = useState(false);
+
+  const handleChangePassword = async () => {
+    setPwdError(null);
+    setPwdSuccess(false);
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPwdError('Please fill in all password fields.');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPwdError('New passwords do not match.');
+      return;
+    }
+    
+    if (newPassword.length < 12) {
+      setPwdError('Password must be at least 12 characters.');
+      return;
+    }
+    
+    setPwdBusy(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      setPwdSuccess(true);
+      setShowPasswordForm(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (ex) {
+      setPwdError(ex.response?.data?.message || 'Password change failed.');
+    } finally {
+      setPwdBusy(false);
+    }
+  };
+
+  const resetPasswordForm = () => {
+    setShowPasswordForm(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPwdError(null);
+    setPwdSuccess(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -38,7 +96,6 @@ export default function Settings() {
         { value: 'sessions',     label: 'Devices & sessions', icon: 'fingerprint' },
         { value: 'notifications', label: 'Notifications', icon: 'notifications' },
         { value: 'preferences',  label: 'Preferences',  icon: 'settings' },
-        { value: 'danger',       label: 'Danger zone',  icon: 'warning' },
       ]} />
 
       {tab === 'security' && (
@@ -56,19 +113,9 @@ export default function Settings() {
                   label="Biometric on this device"
                   description="Use Touch ID / Face ID for high-value approvals." />
               </div>
-              <div className="py-4 flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-medium text-navy-900 dark:text-graphite-100">Hardware security keys</div>
-                  <div className="text-xs text-graphite-500 mt-0.5">FIDO2 / WebAuthn keys registered for offline workflows.</div>
-                </div>
-                <Button variant="secondary" leftIcon="plus">Add key</Button>
-              </div>
-              <div className="py-4 flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-medium text-navy-900 dark:text-graphite-100">Recovery codes</div>
-                  <div className="text-xs text-graphite-500 mt-0.5">Single-use backup codes — store offline.</div>
-                </div>
-                <Button variant="secondary" leftIcon="refresh">Regenerate</Button>
+              <div className="py-4">
+                <div className="text-sm font-medium text-navy-900 dark:text-graphite-100">Hardware security keys</div>
+                <div className="text-xs text-graphite-500 mt-0.5">Hardware key enrollment is not yet available in the MVP.</div>
               </div>
             </div>
           </Card>
@@ -76,13 +123,59 @@ export default function Settings() {
           <Card>
             <CardHeader eyebrow="Password" title="Change your password"
               subtitle="A 12+ character passphrase is recommended. Last changed 4 months ago." />
-            <div className="mt-4 space-y-3">
-              <Field label="Current password"><Input type="password" leftIcon="lock" /></Field>
-              <Field label="New password"><Input type="password" leftIcon="lock" /></Field>
-              <Field label="Confirm new password"><Input type="password" leftIcon="lock" /></Field>
-              <Alert tone="warning">All other active sessions will be signed out for safety.</Alert>
-              <Button leftIcon="check">Update password</Button>
-            </div>
+            {pwdSuccess && !showPasswordForm && (
+              <Alert tone="success" className="mt-4">Password changed successfully.</Alert>
+            )}
+            {!showPasswordForm ? (
+              <div className="mt-4">
+                <Button leftIcon="lock" onClick={() => setShowPasswordForm(true)}>Change password</Button>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {pwdError && <Alert tone="danger">{pwdError}</Alert>}
+                <Field label="Current password">
+                  <Input 
+                    type={showCurrentPwd ? 'text' : 'password'} 
+                    leftIcon="lock"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    rightSlot={
+                      <button type="button" onClick={() => setShowCurrentPwd((s) => !s)}
+                        className="p-1.5 text-graphite-400 hover:text-navy-900">
+                        <Icon name={showCurrentPwd ? 'eyeOff' : 'eye'} size={16} />
+                      </button>
+                    }
+                  />
+                </Field>
+                <Field label="New password">
+                  <Input 
+                    type={showNewPwd ? 'text' : 'password'} 
+                    leftIcon="lock"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    rightSlot={
+                      <button type="button" onClick={() => setShowNewPwd((s) => !s)}
+                        className="p-1.5 text-graphite-400 hover:text-navy-900">
+                        <Icon name={showNewPwd ? 'eyeOff' : 'eye'} size={16} />
+                      </button>
+                    }
+                  />
+                </Field>
+                <Field label="Confirm new password">
+                  <Input 
+                    type={showNewPwd ? 'text' : 'password'} 
+                    leftIcon="lock"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </Field>
+                <Alert tone="warning">All other active sessions will be signed out for safety.</Alert>
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="ghost" onClick={resetPasswordForm}>Cancel</Button>
+                  <Button leftIcon="check" loading={pwdBusy} onClick={handleChangePassword}>Update password</Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       )}
@@ -123,17 +216,15 @@ export default function Settings() {
                     </td>
                     <td className="text-sm text-graphite-600">{s.when}</td>
                     <td className="!pr-6 text-right">
-                      {!s.current
-                        ? <Button size="sm" variant="secondary" leftIcon="logout">Sign out</Button>
-                        : <span className="text-xs text-graphite-400">—</span>}
+                      <span className="text-xs text-graphite-400">—</span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-4 border-t border-graphite-200 dark:border-graphite-800 flex justify-end">
-            <Button variant="secondary" leftIcon="logout">Sign out everywhere</Button>
+          <div className="px-6 py-4 border-t border-graphite-200 dark:border-graphite-800 text-xs text-graphite-500">
+            Session management controls are not yet available in the MVP.
           </div>
         </Card>
       )}
@@ -197,27 +288,6 @@ export default function Settings() {
         </Card>
       )}
 
-      {tab === 'danger' && (
-        <Card>
-          <CardHeader eyebrow="Irrevocable" title="Danger zone" subtitle="These operations cannot be reversed." />
-          <Alert tone="danger" className="mt-4">
-            Closing or deactivating your account requires final settlement of all balances and may take up to 5 business days
-            for funds to clear. Regulatory record retention applies regardless.
-          </Alert>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800 p-4">
-              <div className="text-sm font-semibold text-navy-900 dark:text-graphite-100">Deactivate account</div>
-              <div className="text-xs text-graphite-500 mt-0.5">Pauses all activity. You can reactivate within 90 days.</div>
-              <Button variant="secondary" className="mt-3">Deactivate</Button>
-            </div>
-            <div className="rounded-xl ring-1 ring-danger-100 bg-danger-50 p-4">
-              <div className="text-sm font-semibold text-danger-700">Close account permanently</div>
-              <div className="text-xs text-danger-700/80 mt-0.5">All accounts will be closed and balances disbursed.</div>
-              <Button variant="danger" className="mt-3">Close account</Button>
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

@@ -21,7 +21,12 @@ export default function Login() {
     setBusy(true);
     try {
       const data = await authService.login(form);
-      login(data);
+      if (data.requiresTwoFactor && data.challengeId) {
+        login(data, remember);
+        navigate('/two-factor', { state: { challengeId: data.challengeId, remember } });
+        return;
+      }
+      login(data, remember);
       navigate('/dashboard');
     } catch (ex) {
       setError(ex.response?.data?.message || 'Authentication failed. Please verify your credentials.');
@@ -50,15 +55,7 @@ export default function Login() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
         </Field>
-
-        <Field
-          label={
-            <span className="flex items-center justify-between">
-              <span>Password</span>
-              <Link to="#" className="text-[11px] font-medium text-navy-700 hover:underline normal-case">Forgot?</Link>
-            </span>
-          }
-        >
+        <Field label="Password">
           <Input
             type={showPwd ? 'text' : 'password'}
             required
@@ -87,16 +84,6 @@ export default function Login() {
         <Button type="submit" loading={busy} className="w-full" size="lg">
           {busy ? 'Authenticating…' : 'Sign in securely'}
         </Button>
-
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-graphite-200" /></div>
-          <span className="relative bg-graphite-50 px-3 text-[11px] uppercase tracking-wider text-graphite-500">or continue with</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button" className="btn btn-secondary"><Icon name="fingerprint" size={16} /> Biometric</button>
-          <button type="button" className="btn btn-secondary"><Icon name="qr" size={16} /> QR sign-on</button>
-        </div>
 
         <div className="mt-6 flex items-center gap-2 text-[11px] text-graphite-500 justify-center">
           <Icon name="shieldCheck" size={13} className="text-success-500" />

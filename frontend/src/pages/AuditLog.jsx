@@ -15,8 +15,8 @@ export default function AuditLog() {
 
   const stats = useMemo(() => {
     const blocked = audit.filter((a) => a.decision === 'BLOCKED').length;
-    const allowed = audit.filter((a) => a.decision !== 'BLOCKED').length;
-    return { total: audit.length, blocked, allowed };
+    const passed = audit.filter((a) => a.decision === 'PASSED').length;
+    return { total: audit.length, blocked, passed };
   }, [audit]);
 
   const filtered = audit
@@ -61,7 +61,7 @@ export default function AuditLog() {
           <Tabs value={decision} onChange={setDecision} items={[
             { value: 'ALL', label: 'All', count: stats.total },
             { value: 'BLOCKED', label: 'Blocked', count: stats.blocked },
-            { value: 'ALLOWED', label: 'Allowed', count: stats.allowed },
+            { value: 'PASSED', label: 'Passed', count: stats.passed },
           ]} />
           <div className="ml-auto flex-1 max-w-sm">
             <Input leftIcon="search" placeholder="Search by transaction, rule, detail…"

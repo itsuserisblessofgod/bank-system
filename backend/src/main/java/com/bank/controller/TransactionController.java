@@ -40,4 +40,9 @@ public class TransactionController {
                                              @RequestParam(defaultValue = "20") int size) {
         return transactionService.history(AuthenticatedUser.requireUserId(), accountId, page, size);
     }
+
+    @GetMapping("/recent")
+    public java.util.List<TransactionResponse> recent(@RequestParam(defaultValue = "10") int limit) {
+        return transactionService.getRecentForUser(AuthenticatedUser.requireUserId(), limit);
+    }
 }

@@ -10,6 +10,7 @@ import Icon from '../components/icons/Icon.jsx';
 export default function FraudAlerts() {
   const [alerts, setAlerts] = useState([]);
   const [audit, setAudit] = useState([]);
+  const [rulesInfo, setRulesInfo] = useState({ rules: [], velocityWindow: '—', maxTransactions: '—', blockedCountries: [] });
   const [message, setMessage] = useState(null);
   const [tab, setTab] = useState('alerts');
   const [search, setSearch] = useState('');
@@ -18,6 +19,7 @@ export default function FraudAlerts() {
   const reload = () => {
     adminService.fraudAlerts().then(setAlerts).catch(() => {});
     adminService.fraudAuditLog().then(setAudit).catch(() => {});
+    adminService.fraudRulesInfo().then(setRulesInfo).catch(() => {});
   };
   useEffect(() => { reload(); }, []);
 
@@ -54,10 +56,7 @@ export default function FraudAlerts() {
         title="Fraud surveillance & rules engine"
         subtitle="Real-time perimeter for transactional risk. Decisions are immutable and replayable."
         actions={
-          <>
-            <Button variant="secondary" leftIcon="download">Export findings</Button>
-            <Button leftIcon="refresh" loading={busy} onClick={reload2}>Hot-reload rules</Button>
-          </>
+          <Button leftIcon="refresh" loading={busy} onClick={reload2}>Hot-reload rules</Button>
         }
       />
 
@@ -67,7 +66,7 @@ export default function FraudAlerts() {
         <KpiTile label="Open alerts" value={alerts.length} icon="warning" deltaTone="warning"
           delta={alerts.length > 0 ? 'Action required' : 'All clear'} />
         <KpiTile label="Blocked decisions" value={stats.blocked} icon="shieldCheck" footer={`${stats.blockRate}% block rate`} />
-        <KpiTile label="Allowed decisions" value={stats.passed} icon="check" deltaTone="success" />
+        <KpiTile label="Passed decisions" value={stats.passed} icon="check" deltaTone="success" />
         <KpiTile label="Value blocked" value={<Money value={stats.sumBlocked} compact />} icon="lock" footer="Across flagged transactions" />
       </div>
 
@@ -163,20 +162,20 @@ export default function FraudAlerts() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          ['LARGE_AMOUNT', 'Blocks transactions above $10,000 unless explicitly approved.'],
-          ['VELOCITY', 'Flags > 5 outbound transactions in a 60-second window.'],
-          ['SANCTIONED_COUNTRY', 'Cross-references counterparty country against OFAC, EU, UN lists.'],
-        ].map(([k, v]) => (
-          <Card key={k}>
+        {rulesInfo.rules.map((ruleName) => (
+          <Card key={ruleName}>
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center ring-1 ring-navy-100">
                 <Icon name="shield" size={17} />
               </div>
               <div className="text-xs uppercase tracking-wider text-graphite-500">Rule</div>
             </div>
-            <h4 className="mt-3 text-sm font-semibold text-navy-900 font-mono">{k}</h4>
-            <p className="text-sm text-graphite-600 mt-1.5 leading-relaxed">{v}</p>
+            <h4 className="mt-3 text-sm font-semibold text-navy-900 font-mono">{ruleName}</h4>
+            <div className="mt-2 space-y-1.5 text-sm text-graphite-600 leading-relaxed">
+              {ruleName === 'CheckLimitRule' && <p>Large-amount checks apply before settlement is authorised.</p>}
+              {ruleName === 'CheckVelocityRule' && <p>Velocity window: {rulesInfo.velocityWindow} · Max transactions: {rulesInfo.maxTransactions}</p>}
+              {ruleName === 'CheckCountryRule' && <p>Blocked countries: {rulesInfo.blockedCountries.join(', ') || '—'}</p>}
+            </div>
             <div className="mt-3"><Badge tone="success" dot>Active</Badge></div>
           </Card>
         ))}

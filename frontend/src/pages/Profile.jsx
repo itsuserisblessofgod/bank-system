@@ -16,18 +16,18 @@ export default function Profile() {
   const { auth } = useAuth();
   const [tab, setTab] = useState('personal');
   const [form, setForm] = useState({
-    fullName: auth?.fullName || 'Eleanor R. Sterling',
-    email: auth?.email || 'e.sterling@institution.com',
-    phone: '+1 (212) 555-0118',
+    fullName: auth?.fullName || '',
+    email: auth?.email || '',
+    phone: '',
     country: auth?.countryCode || 'US',
-    address1: '410 Park Avenue, Suite 1800',
-    city: 'New York',
-    postal: '10022',
-    dob: '1986-03-14',
-    employer: 'Sterling Holdings LLC',
-    title: 'Managing Partner',
-    income: '850000',
-    occupation: 'Asset Management',
+    address1: '',
+    city: '',
+    postal: '',
+    dob: '',
+    employer: '',
+    title: '',
+    income: '',
+    occupation: '',
   });
   const setF = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -37,8 +37,12 @@ export default function Profile() {
         eyebrow="Account"
         title="Profile & KYC"
         subtitle="Manage personal information, verification status, and beneficial ownership records."
-        actions={<Button variant="secondary" leftIcon="download">Download data</Button>}
+        actions={<Button variant="secondary" leftIcon="download" disabled style={{opacity: 0.5, pointerEvents: 'none'}} title="Coming soon">Download data</Button>}
       />
+
+      <Alert tone="info" title="Profile editing not available">
+        Profile editing is not yet available. Contact support to update your information.
+      </Alert>
 
       {/* Identity panel */}
       <Card>
@@ -94,8 +98,8 @@ export default function Profile() {
               <Field label="City"><Input value={form.city} onChange={setF('city')} /></Field>
             </div>
             <div className="mt-6 flex items-center justify-end gap-2">
-              <Button variant="ghost">Discard</Button>
-              <Button leftIcon="check">Save changes</Button>
+              <Button variant="ghost" disabled style={{opacity: 0.5, pointerEvents: 'none'}}>Discard</Button>
+              <Button leftIcon="check" disabled style={{opacity: 0.5, pointerEvents: 'none'}} title="Coming soon">Save changes</Button>
             </div>
           </Card>
 
@@ -139,67 +143,24 @@ export default function Profile() {
             ))}
           </div>
           <div className="mt-5 flex items-center gap-3">
-            <Button leftIcon="upload" variant="secondary">Upload document</Button>
-            <Button leftIcon="refresh" variant="ghost">Re-run screening</Button>
+            <Button leftIcon="upload" variant="secondary" disabled style={{opacity: 0.5, pointerEvents: 'none'}} title="Coming soon">Upload document</Button>
+            <Button leftIcon="refresh" variant="ghost" disabled style={{opacity: 0.5, pointerEvents: 'none'}} title="Coming soon">Re-run screening</Button>
           </div>
         </Card>
       )}
 
       {tab === 'tax' && (
         <Card>
-          <CardHeader eyebrow="Tax & FATCA" title="Tax residency and filings" subtitle="EBMS reports under FATCA, CRS, and applicable local schedules." />
-          <Alert tone="info" className="mt-4">Submit a fresh W-9 / W-8BEN if your tax residency changes.</Alert>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-            {[
-              ['Primary residency', 'United States'],
-              ['Secondary residency', '—'],
-              ['Form on file', 'W-9 · 2025'],
-              ['TIN', '••• ••• 1234'],
-              ['CRS classification', 'Passive NFE'],
-              ['Last filing', 'Apr 14, 2026'],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-graphite-50 dark:bg-graphite-900/40 ring-1 ring-graphite-200 dark:ring-graphite-800 px-4 py-3">
-                <div className="text-[11px] uppercase tracking-wider text-graphite-500">{k}</div>
-                <div className="text-sm font-medium text-navy-900 dark:text-graphite-100 mt-0.5">{v}</div>
-              </div>
-            ))}
-          </div>
+          <CardHeader eyebrow="Tax & FATCA" title="Tax residency and filings" subtitle="This section is not yet connected to live data." />
+          <Alert tone="info" className="mt-4">Tax information editing is not yet available. Contact compliance support.</Alert>
         </Card>
       )}
 
       {tab === 'beneficiaries' && (
         <Card>
           <CardHeader eyebrow="Estate" title="Beneficiaries & POA"
-            subtitle="Designated beneficiaries are reviewed annually. POA assignments require notarisation." />
-          <div className="mt-4 overflow-x-auto rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="!pl-4">Name</th>
-                  <th>Relationship</th>
-                  <th>Allocation</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ['Margaret Sterling', 'Spouse', 60, 'Verified'],
-                  ['Daniel Sterling', 'Son', 25, 'Verified'],
-                  ['Sterling Foundation', 'Trust', 15, 'Pending'],
-                ].map(([n, r, a, s]) => (
-                  <tr key={n}>
-                    <td className="!pl-4 text-navy-900 dark:text-graphite-100 font-medium">{n}</td>
-                    <td>{r}</td>
-                    <td className="num">{a}%</td>
-                    <td><Badge tone={s === 'Verified' ? 'success' : 'warning'} dot>{s}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-4">
-            <Button leftIcon="plus" variant="secondary">Add beneficiary</Button>
-          </div>
+            subtitle="This section is not yet connected to live data." />
+          <Alert tone="info" className="mt-4">Beneficiary management is not yet available. Contact support to add beneficiaries.</Alert>
         </Card>
       )}
     </div>

@@ -30,6 +30,9 @@ spring:
 server:
   port: 8080
 
+app:
+  require-2fa: ${APP_REQUIRE_2FA:false}
+
 ebms:
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-this-is-a-very-long-development-secret-key-1234567890}

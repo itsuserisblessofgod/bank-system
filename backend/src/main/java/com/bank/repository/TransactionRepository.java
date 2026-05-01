@@ -27,6 +27,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             "AND t.timestamp >= :since")
     long countSince(@Param("accountId") UUID accountId, @Param("since") Instant since);
 
+    @Query("SELECT t FROM Transaction t " +
+            "WHERE t.senderAccount.owner.id = :userId OR t.receiverAccount.owner.id = :userId " +
+            "ORDER BY t.timestamp DESC")
+    List<Transaction> findRecentByUserId(@Param("userId") UUID userId, Pageable pageable);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
             "WHERE t.senderAccount.id = :accountId AND t.status = com.bank.model.TransactionStatus.COMPLETED " +
             "AND t.timestamp >= :since")

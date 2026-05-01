@@ -7,4 +7,6 @@ export const transactionService = {
     api.post('/transactions/transfer', { fromAccountId, toAccountId, amount }).then((r) => r.data),
   history: (accountId, page = 0, size = 20) =>
     api.get('/transactions/history', { params: { accountId, page, size } }).then((r) => r.data),
+  getRecent: (limit = 10) =>
+    api.get(`/transactions/recent?limit=${limit}`).then((r) => r.data),
 };

@@ -8,5 +8,7 @@ public record RegisterRequest(
         @NotBlank @Size(max = 100) String fullName,
         @NotBlank @Email @Size(max = 150) String email,
         @NotBlank @Size(min = 8, max = 100) String password,
-        @Size(max = 3) String countryCode
+        @Size(max = 3) String countryCode,
+        @Size(max = 30) String phone,
+        @Size(max = 30) String accountType
 ) {}

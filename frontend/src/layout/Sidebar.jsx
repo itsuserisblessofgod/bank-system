@@ -8,9 +8,9 @@ const PRIMARY = [
   { to: '/accounts', label: 'Accounts', icon: 'accounts' },
   { to: '/transactions', label: 'Transactions', icon: 'transactions' },
   { to: '/transfer', label: 'Transfers', icon: 'transfer' },
-  { to: '/cards', label: 'Cards', icon: 'cards' },
-  { to: '/loans', label: 'Loans & Credit', icon: 'loans' },
-  { to: '/analytics', label: 'Analytics', icon: 'analytics' },
+  // { to: '/cards', label: 'Cards', icon: 'cards' },  // Mock-only, not connected
+  // { to: '/loans', label: 'Loans & Credit', icon: 'loans' },  // Mock-only, not connected
+  // { to: '/analytics', label: 'Analytics', icon: 'analytics' },  // Mock-only, not connected
 ];
 
 const PERSONAL = [
@@ -39,7 +39,7 @@ function Section({ title, items, badges = {} }) {
           >
             <Icon name={it.icon} size={17} className="opacity-90" />
             <span className="flex-1 truncate">{it.label}</span>
-            {badges[it.to] != null && (
+            {badges[it.to] != null && badges[it.to] > 0 && (
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gold-300/90 text-navy-900">
                 {badges[it.to]}
               </span>
@@ -72,9 +72,9 @@ export default function Sidebar({ unreadNotifications = 0, fraudCount = 0 }) {
 
       <div className="flex-1 overflow-y-auto pb-6">
         <Section items={PRIMARY} badges={{}} />
-        <Section title="Personal" items={PERSONAL} badges={unreadNotifications ? { '/notifications': unreadNotifications } : {}} />
+        <Section title="Personal" items={PERSONAL} badges={unreadNotifications > 0 ? { '/notifications': unreadNotifications } : {}} />
         {isAdmin && (
-          <Section title="Administration" items={ADMIN} badges={fraudCount ? { '/admin/fraud': fraudCount } : {}} />
+          <Section title="Administration" items={ADMIN} badges={fraudCount > 0 ? { '/admin/fraud': fraudCount } : {}} />
         )}
       </div>
 

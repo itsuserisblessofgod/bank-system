@@ -4,6 +4,7 @@ import com.bank.dto.AccountResponse;
 import com.bank.dto.CreateAccountRequest;
 import com.bank.exception.ApiException;
 import com.bank.model.Account;
+import com.bank.model.AccountType;
 import com.bank.model.User;
 import com.bank.patterns.factory.AccountFactory;
 import com.bank.repository.AccountRepository;
@@ -38,6 +39,11 @@ public class AccountService {
         return AccountResponse.from(account);
     }
 
+    @Transactional
+    public AccountResponse createAccount(UUID userId, String accountType) {
+        return create(userId, new CreateAccountRequest(parseAccountType(accountType)));
+    }
+
     @Transactional(readOnly = true)
     public AccountResponse getById(UUID userId, UUID accountId, boolean isAdmin) {
         Account account = accountRepo.findById(accountId)
@@ -53,5 +59,22 @@ public class AccountService {
         return accountRepo.findByOwnerId(userId).stream()
                 .map(AccountResponse::from)
                 .toList();
+    }
+
+    private AccountType parseAccountType(String accountType) {
+        if (accountType == null || accountType.isBlank()) {
+            throw ApiException.badRequest("Account type required");
+        }
+        return switch (accountType.trim().toUpperCase()) {
+            case "PERSONAL", "BUSINESS" -> AccountType.CHECKING;
+            case "INSTITUTIONAL" -> AccountType.PREMIUM;
+            default -> {
+                try {
+                    yield AccountType.valueOf(accountType.trim().toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                    throw ApiException.badRequest("Unsupported account type");
+                }
+            }
+        };
     }
 }

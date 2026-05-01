@@ -31,14 +31,27 @@ export default function Transactions() {
     transactionService.history(accountId, page, 20).then(setData);
   }, [accountId, page]);
 
+  const counterpartyLabel = (tx) => {
+    if (tx.transactionType === 'TRANSFER') {
+      const otherAccountId = tx.senderAccountId === accountId ? tx.receiverAccountId : tx.senderAccountId;
+      return otherAccountId ? `Account · ${otherAccountId.slice(0, 8)}…` : 'Internal transfer';
+    }
+    if (tx.transactionType === 'DEPOSIT') return 'Inbound funding';
+    if (tx.transactionType === 'WITHDRAWAL') return 'Cash withdrawal';
+    return '—';
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return data.content.filter((t) =>
       (filterType === 'ALL' || t.transactionType === filterType) &&
       (filterStatus === 'ALL' || t.status === filterStatus) &&
-      (!q || t.id?.toLowerCase().includes(q) || t.transactionType?.toLowerCase().includes(q))
+      (!q
+        || t.id?.toLowerCase().includes(q)
+        || t.transactionType?.toLowerCase().includes(q)
+        || counterpartyLabel(t).toLowerCase().includes(q))
     );
-  }, [data.content, filterType, filterStatus, search]);
+  }, [accountId, data.content, filterType, filterStatus, search]);
 
   const stats = useMemo(() => {
     const completed = data.content.filter((t) => t.status === 'COMPLETED').length;
@@ -53,13 +66,6 @@ export default function Transactions() {
         eyebrow="Ledger"
         title="Transactions"
         subtitle="Granular audit-grade record of every movement, with regulatory disclosures and counterparty metadata."
-        actions={
-          <>
-            <Button variant="secondary" leftIcon="filter">Advanced filters</Button>
-            <Button variant="secondary" leftIcon="download">Export CSV</Button>
-            <Button leftIcon="plus">New entry</Button>
-          </>
-        }
       />
 
       <Card flush>
@@ -146,7 +152,7 @@ export default function Transactions() {
                       </div>
                     </td>
                     <td className="text-sm text-graphite-600">
-                      {tx.fraudReason || <span className="text-graphite-400">Internal · Same entity</span>}
+                      {counterpartyLabel(tx)}
                     </td>
                     <td className="!pr-6 text-xs text-graphite-500">
                       {tx.timestamp ? new Date(tx.timestamp).toLocaleString() : '—'}

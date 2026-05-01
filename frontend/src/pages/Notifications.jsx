@@ -13,36 +13,7 @@ const CATEGORIES = {
 };
 
 const NOTIFICATIONS = [
-  {
-    id: 'n1', category: 'security', title: 'New sign-in from Aspen, US',
-    body: 'A sign-in to your account was made from a new IP. If this was not you, secure your account.',
-    time: '2 min ago', unread: true, action: 'Review',
-  },
-  {
-    id: 'n2', category: 'transactional', title: 'Outgoing wire authorised — $42,500',
-    body: 'Wire to BENEFICIARY · A/C •••0119 settled at 14:02 UTC. Reference WIRE-2026-04-198.',
-    time: '1 hour ago', unread: true,
-  },
-  {
-    id: 'n3', category: 'security', title: 'Password changed',
-    body: 'Your account password was updated. All other sessions have been signed out.',
-    time: '3 hours ago', unread: true,
-  },
-  {
-    id: 'n4', category: 'account', title: 'KYC document under review',
-    body: 'Your most recent source-of-funds statement is being reviewed. Estimated time: 24 hours.',
-    time: 'Yesterday', unread: false,
-  },
-  {
-    id: 'n5', category: 'product', title: 'Securities-backed line — rate reduced',
-    body: 'Your facility has been re-priced to 4.20% APR effective May 1, 2026.',
-    time: '2 days ago', unread: false,
-  },
-  {
-    id: 'n6', category: 'transactional', title: 'Statement available — Mar 2026',
-    body: 'Your monthly e-statement is ready in the documents vault.',
-    time: '6 days ago', unread: false,
-  },
+  // Mock notifications removed - real notifications will come from the backend
 ];
 
 export default function Notifications() {

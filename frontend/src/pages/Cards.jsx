@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '../layout/PageHeader.jsx';
 import {
   Card, CardHeader, Button, Badge, Switch, Money, Tabs, Field, Input,
@@ -75,6 +75,13 @@ export default function Cards() {
   const [intl, setIntl] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const [show, setShow] = useState(false);
+
+  // Auto-hide card details after 30 seconds
+  useEffect(() => {
+    if (!show) return;
+    const t = setTimeout(() => setShow(false), 30000);
+    return () => clearTimeout(t);
+  }, [show]);
 
   const utilization = card.limit ? Math.round((card.balance / card.limit) * 100) : 0;
 

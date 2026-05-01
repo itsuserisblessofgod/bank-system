@@ -25,10 +25,10 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-graphite-50 dark:bg-graphite-950">
-      <Sidebar unreadNotifications={3} fraudCount={0} />
+      <Sidebar unreadNotifications={0} fraudCount={0} />
       <div className="lg:pl-64 flex flex-col min-h-screen">
         <Topbar
-          unreadNotifications={3}
+          unreadNotifications={0}
           theme={theme}
           onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
         />
@@ -40,9 +40,9 @@ export default function AppShell() {
                            flex flex-wrap items-center gap-x-4 gap-y-1">
           <span>© {new Date().getFullYear()} EBMS Holdings · Member FDIC · Equal Housing Lender</span>
           <span className="hidden sm:inline">·</span>
-          <a className="hover:text-navy-900 dark:hover:text-graphite-200" href="#">Privacy</a>
-          <a className="hover:text-navy-900 dark:hover:text-graphite-200" href="#">Disclosures</a>
-          <a className="hover:text-navy-900 dark:hover:text-graphite-200" href="#">Compliance</a>
+          <span>Privacy</span>
+          <span>Disclosures</span>
+          <span>Compliance</span>
           <span className="ml-auto font-mono">v1.0 · Build 2026.04</span>
         </footer>
       </div>

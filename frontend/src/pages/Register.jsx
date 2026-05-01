@@ -38,7 +38,7 @@ export default function Register() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', countryCode: 'US',
-    phone: '', accountType: 'PERSONAL', tos: false, dataConsent: false,
+    phone: '', accountType: 'CHECKING', tos: false, dataConsent: false,
   });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -74,6 +74,8 @@ export default function Register() {
         email: form.email,
         password: form.password,
         countryCode: form.countryCode,
+        phone: form.phone,
+        accountType: form.accountType,
       });
       login(data);
       navigate('/dashboard');
@@ -113,9 +115,9 @@ export default function Register() {
           <>
             <Field label="Account type">
               <Select value={form.accountType} onChange={(e) => setForm({ ...form, accountType: e.target.value })}>
-                <option value="PERSONAL">Personal · Private Banking</option>
-                <option value="BUSINESS">Business · Corporate Treasury</option>
-                <option value="INSTITUTIONAL">Institutional · Custody</option>
+                <option value="CHECKING">Checking · Operating account</option>
+                <option value="SAVINGS">Savings · Reserve account</option>
+                <option value="PREMIUM">Premium · Concierge banking</option>
               </Select>
             </Field>
             <Field label="Legal full name">
@@ -191,7 +193,7 @@ export default function Register() {
             <Checkbox
               checked={form.tos}
               onChange={(e) => setForm({ ...form, tos: e.target.checked })}
-              label={<>I accept the <a className="text-navy-900 underline" href="#">Terms of Service</a> and <a className="text-navy-900 underline" href="#">Account Disclosures</a></>}
+              label="I accept the Terms of Service and Account Disclosures."
             />
             <Checkbox
               checked={form.dataConsent}

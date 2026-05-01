@@ -80,9 +80,9 @@ export default function AuthLayout({ children, title, subtitle, footer }) {
         <div className="px-6 py-4 border-t border-graphite-200 text-[11px] text-graphite-500 flex items-center justify-between">
           <span>© {new Date().getFullYear()} EBMS Holdings</span>
           <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-navy-900">Privacy</a>
-            <a href="#" className="hover:text-navy-900">Terms</a>
-            <a href="#" className="hover:text-navy-900">Help</a>
+            <span>Privacy</span>
+            <span>Terms</span>
+            <span>Help</span>
           </div>
         </div>
       </div>

@@ -138,6 +138,14 @@ public class TransactionService {
                 .map(TransactionResponse::from);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<TransactionResponse> getRecentForUser(UUID userId, int limit) {
+        return txRepo.findRecentByUserId(userId, PageRequest.of(0, limit))
+                .stream()
+                .map(TransactionResponse::from)
+                .toList();
+    }
+
     private Account loadOwnedAccount(UUID userId, UUID accountId) {
         Account a = accountRepo.findById(accountId)
                 .orElseThrow(() -> ApiException.notFound("Account not found"));

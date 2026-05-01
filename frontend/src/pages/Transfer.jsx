@@ -109,7 +109,7 @@ export default function Transfer() {
                     <Input type="number" min="0.01" step="0.01" leftIcon="coin" placeholder="0.00"
                       value={amount} onChange={(e) => setAmount(e.target.value)} />
                   </Field>
-                  <Field label="Memo (optional)">
+                  <Field label="Memo (optional)" hint="Memo is not stored on the server.">
                     <Input leftIcon="receipt" placeholder="e.g. Q2 retainer"
                       value={memo} onChange={(e) => setMemo(e.target.value)} />
                   </Field>
@@ -208,13 +208,6 @@ export default function Transfer() {
               <div className="rounded-xl bg-graphite-50 dark:bg-graphite-900/40 ring-1 ring-graphite-200 dark:ring-graphite-800 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between"><span className="text-graphite-500">Daily limit</span><span className="num font-medium"><Money value={fromAccount.dailyLimit} /></span></div>
                 <div className="flex items-center justify-between mt-1"><span className="text-graphite-500">Currency</span><span className="num font-medium">USD</span></div>
-              </div>
-              <div className="rounded-xl bg-navy-50 ring-1 ring-navy-100 px-4 py-3 text-sm flex items-start gap-3">
-                <Icon name="shield" className="text-navy-700 mt-0.5" />
-                <div className="text-navy-900">
-                  <div className="font-semibold">Compliance check</div>
-                  <div className="text-graphite-600 text-xs mt-0.5">Counterparty will be screened against OFAC, EU, and UN sanction lists at authorisation.</div>
-                </div>
               </div>
             </div>
           )}

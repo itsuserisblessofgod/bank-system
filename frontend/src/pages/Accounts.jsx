@@ -41,7 +41,6 @@ export default function Accounts() {
         subtitle="Manage savings, checking, and premium accounts. Each account carries its own ledger and limits."
         actions={
           <>
-            <Button variant="secondary" leftIcon="download">Statements</Button>
             <Link to="/transfer" className="btn btn-primary"><Icon name="transfer" size={16} />Transfer</Link>
           </>
         }

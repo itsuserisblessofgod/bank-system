@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -7,23 +7,28 @@ const STORAGE_KEY = 'ebms.auth';
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
   });
 
-  useEffect(() => {
-    if (auth) localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
-    else localStorage.removeItem(STORAGE_KEY);
-  }, [auth]);
-
   const value = useMemo(
     () => ({
       auth,
-      login: (data) => setAuth(data),
-      logout: () => setAuth(null),
+      login: (data, remember = true) => {
+        const nextAuth = { ...data, remember };
+        const storage = remember ? localStorage : sessionStorage;
+        storage.setItem(STORAGE_KEY, JSON.stringify(nextAuth));
+        (remember ? sessionStorage : localStorage).removeItem(STORAGE_KEY);
+        setAuth(nextAuth);
+      },
+      logout: () => {
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
+        setAuth(null);
+      },
       isAdmin: auth?.role === 'ROLE_ADMIN',
     }),
     [auth]

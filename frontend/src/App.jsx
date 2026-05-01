@@ -10,9 +10,6 @@ import Dashboard from './pages/Dashboard.jsx';
 import Accounts from './pages/Accounts.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Transfer from './pages/Transfer.jsx';
-import Cards from './pages/Cards.jsx';
-import Loans from './pages/Loans.jsx';
-import Analytics from './pages/Analytics.jsx';
 import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import Notifications from './pages/Notifications.jsx';
@@ -27,17 +24,17 @@ export default function App() {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/two-factor" element={<TwoFactor />} />
 
       <Route element={<PrivateRoute />}>
         <Route element={<AppShell />}>
+          <Route path="/two-factor" element={<TwoFactor />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/transfer" element={<Transfer />} />
-          <Route path="/cards" element={<Cards />} />
-          <Route path="/loans" element={<Loans />} />
-          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/cards" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/loans" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/analytics" element={<Navigate to="/dashboard" replace />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/notifications" element={<Notifications />} />

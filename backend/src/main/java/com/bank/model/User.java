@@ -35,6 +35,9 @@ public class User {
     @Column(name = "country_code", length = 3)
     private String countryCode;
 
+    @Column(length = 30)
+    private String phone;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

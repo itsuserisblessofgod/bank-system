@@ -7,5 +7,7 @@ public record AuthResponse(
         UUID userId,
         String email,
         String fullName,
-        String role
+        String role,
+        boolean requiresTwoFactor,
+        String challengeId
 ) {}
