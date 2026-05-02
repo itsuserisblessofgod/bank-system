@@ -29,6 +29,7 @@ public class TransactionService {
     private final FraudFilterChain fraudChain;
     private final FraudAuditService auditService;
     private final TransactionEventPublisher eventPublisher;
+    private final CashbackService cashbackService;
     private final TransactionProcessor processor;
 
     public TransactionService(AccountRepository accountRepo,
@@ -36,16 +37,20 @@ public class TransactionService {
                               UserRepository userRepo,
                               FraudFilterChain fraudChain,
                               FraudAuditService auditService,
-                              TransactionEventPublisher eventPublisher) {
+                              TransactionEventPublisher eventPublisher,
+                              CashbackService cashbackService) {
         this.accountRepo = accountRepo;
         this.txRepo = txRepo;
         this.userRepo = userRepo;
         this.fraudChain = fraudChain;
         this.auditService = auditService;
         this.eventPublisher = eventPublisher;
-        this.processor = new LoggedTransactionDecorator(
-                new EncryptedTransactionDecorator(
-                        new BaseTransactionProcessor()));
+        this.cashbackService = cashbackService;
+        this.processor = new CashbackTransactionDecorator(
+                new LoggedTransactionDecorator(
+                        new EncryptedTransactionDecorator(
+                                new BaseTransactionProcessor())),
+                cashbackService);
     }
 
     @Transactional

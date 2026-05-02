@@ -9,7 +9,8 @@ const PRIMARY = [
   { to: '/transactions', label: 'Transactions', icon: 'transactions' },
   { to: '/transfer', label: 'Transfers', icon: 'transfer' },
   // { to: '/cards', label: 'Cards', icon: 'cards' },  // Mock-only, not connected
-  // { to: '/loans', label: 'Loans & Credit', icon: 'loans' },  // Mock-only, not connected
+  { to: '/loans', label: 'Loans & Credit', icon: 'loans' },
+  { to: '/rewards', label: 'Rewards', icon: 'star' },
   // { to: '/analytics', label: 'Analytics', icon: 'analytics' },  // Mock-only, not connected
 ];
 

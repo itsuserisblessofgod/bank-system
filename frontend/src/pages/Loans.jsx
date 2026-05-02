@@ -1,196 +1,270 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../layout/PageHeader.jsx';
 import {
   Card, CardHeader, Button, Badge, Money, Field, Input, Select,
-  KpiTile, ProgressBar, StatusPill, EmptyState, Alert,
+  Tabs, Segmented, EmptyState, Alert, StatusPill,
 } from '../components/ui/index.jsx';
 import Icon from '../components/icons/Icon.jsx';
-import { ProgressArc, BarChart } from '../components/charts/Charts.jsx';
+import { loanService } from '../services/loanService.js';
 
-// Mock — backend does not expose loan endpoints.
-const PRODUCTS = [
-  { id: 'mort', label: 'Residential Mortgage', apr: '5.85%', term: 'Up to 30 yrs', desc: 'Owner-occupied & investment properties.' },
-  { id: 'sec',  label: 'Securities-Backed Line', apr: '4.20%', term: 'Revolving', desc: 'Borrow against your investment portfolio.' },
-  { id: 'biz',  label: 'Business Term Loan', apr: '7.10%', term: '12–84 months', desc: 'Working capital, expansion, equipment.' },
-  { id: 'auto', label: 'Premium Auto', apr: '4.95%', term: '24–72 months', desc: 'Marque dealerships and direct purchase.' },
-];
+const STRATEGY_LABEL = {
+  STANDARD: 'Standard',
+  MURABAHA: 'Murabaha (Halal)',
+  LEASING:  'Leasing',
+};
 
-const MY_LOANS = [
-  { id: 'L-77321', name: 'Manhattan Residence', kind: 'Mortgage', principal: 1850000, balance: 1620400, apr: 5.45, term: 360, paidMonths: 38, next: '2026-05-12' },
-  { id: 'L-21908', name: 'Sterling Holdings — Series A line', kind: 'Securities-Backed', principal: 500000, balance: 122500, apr: 4.20, term: 0, paidMonths: 0, next: 'Revolving' },
-];
+const PURPOSES = ['CAR', 'REAL_ESTATE', 'BUSINESS', 'OTHER'];
 
-function amortization(principal, aprPct, months) {
-  if (!months) return [];
-  const r = aprPct / 100 / 12;
-  const m = principal * (r / (1 - Math.pow(1 + r, -months)));
-  return Array.from({ length: 12 }, (_, i) => {
-    const period = i + 1;
-    const interest = principal * r;
-    const principalPay = m - interest;
-    principal = principal - principalPay;
-    return { period, interest, principalPay, balance: Math.max(0, principal) };
-  });
+const DEFAULT_FORM = {
+  STANDARD: { assetPrice: 250000, profitMargin: 0,    annualRate: 0.0585, residualValue: 0,     termMonths: 240, purpose: 'REAL_ESTATE' },
+  MURABAHA: { assetPrice: 50000,  profitMargin: 0.15, annualRate: 0,      residualValue: 0,     termMonths: 60,  purpose: 'CAR' },
+  LEASING:  { assetPrice: 80000,  profitMargin: 0,    annualRate: 0.06,   residualValue: 20000, termMonths: 36,  purpose: 'CAR' },
+};
+
+function strategyTone(s) {
+  if (s === 'MURABAHA') return 'gold';
+  if (s === 'LEASING') return 'info';
+  return 'navy';
 }
 
 export default function Loans() {
-  const [calc, setCalc] = useState({ principal: 250000, apr: 5.85, term: 240 });
-  const monthly = useMemo(() => {
-    const r = (calc.apr / 100) / 12;
-    if (!r || !calc.term) return 0;
-    return calc.principal * (r / (1 - Math.pow(1 + r, -calc.term)));
-  }, [calc]);
-  const totalPaid = monthly * calc.term;
-  const totalInterest = totalPaid - calc.principal;
+  const [tab, setTab] = useState('calculator');
+  const [strategy, setStrategy] = useState('STANDARD');
+  const [form, setForm] = useState(DEFAULT_FORM.STANDARD);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [myLoans, setMyLoans] = useState([]);
 
-  const schedule = useMemo(() => amortization(calc.principal, calc.apr, calc.term), [calc]);
+  useEffect(() => {
+    setForm(DEFAULT_FORM[strategy]);
+    setResult(null);
+    setError(null);
+  }, [strategy]);
+
+  const reloadLoans = () => loanService.getMyLoans().then(setMyLoans).catch(() => {});
+  useEffect(() => { reloadLoans(); }, []);
+
+  const setField = (name, value) => setForm((f) => ({ ...f, [name]: value }));
+
+  const submit = async () => {
+    setError(null); setMessage(null); setLoading(true);
+    try {
+      const payload = { ...form, strategyType: strategy };
+      const data = await loanService.calculate(payload);
+      setResult(data);
+    } catch (ex) {
+      setError(ex.response?.data?.message || 'Calculation failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyLoan = async () => {
+    if (!result) return;
+    setApplying(true); setError(null); setMessage(null);
+    try {
+      const payload = { ...form, strategyType: strategy };
+      const app = await loanService.apply(payload);
+      setMessage(`Application submitted (${app.id.slice(0, 8)}…). Status: ${app.status}.`);
+      reloadLoans();
+    } catch (ex) {
+      setError(ex.response?.data?.message || 'Application failed.');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const tabItems = useMemo(() => ([
+    { value: 'calculator',   label: 'Calculator', icon: 'coin' },
+    { value: 'applications', label: 'My Applications', icon: 'receipt', count: myLoans.length || undefined },
+  ]), [myLoans.length]);
+
+  const segItems = useMemo(() => Object.entries(STRATEGY_LABEL).map(([v, label]) => ({ value: v, label })), []);
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Credit"
         title="Loans & Credit"
-        subtitle="Originate, manage, and amortise your facilities — fully integrated with treasury and KYC."
-        actions={<Button leftIcon="plus">Apply for credit</Button>}
+        subtitle="Standard annuity loans, Halal Murabaha financing, and Leasing — all in one calculator."
       />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiTile label="Outstanding principal" value={<Money value={MY_LOANS.reduce((s, l) => s + l.balance, 0)} compact />}
-                 icon="loans" footer={`${MY_LOANS.length} active facilities`} />
-        <KpiTile label="Weighted APR" value="5.21%" icon="trendUp" delta="−12 bps QoQ" deltaTone="success" />
-        <KpiTile label="Next payment" value={<Money value={9485.30} />} icon="calendar" footer="Due May 12, 2026" />
-        <KpiTile label="Available credit" value={<Money value={377500} compact />} icon="wallet" footer="Securities-backed line" />
-      </div>
+      <Tabs value={tab} onChange={setTab} items={tabItems} />
 
-      {/* Active facilities */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {MY_LOANS.map((l) => {
-          const pct = l.term ? Math.min(100, Math.round((l.paidMonths / l.term) * 100)) : 35;
-          return (
-            <Card key={l.id} flush>
-              <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2"><Badge tone="navy">{l.kind}</Badge><Badge tone="neutral">{l.id}</Badge></div>
-                  <h3 className="mt-2 text-base font-semibold text-navy-900 dark:text-graphite-50">{l.name}</h3>
-                  <p className="text-sm text-graphite-500 mt-0.5">Next event · {l.next}</p>
-                </div>
-                <ProgressArc value={pct} size={68} thickness={7} color="#243e68" />
-              </div>
-              <div className="px-6 pb-5">
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">Principal</div>
-                    <div className="num font-semibold text-navy-900 dark:text-graphite-100"><Money value={l.principal} compact /></div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">Outstanding</div>
-                    <div className="num font-semibold text-navy-900 dark:text-graphite-100"><Money value={l.balance} compact /></div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">APR</div>
-                    <div className="num font-semibold text-navy-900 dark:text-graphite-100">{l.apr.toFixed(2)}%</div>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <ProgressBar value={pct} label={`Repaid · ${l.paidMonths} of ${l.term || '∞'} periods`} />
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <StatusPill status="ACTIVE" />
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="secondary" leftIcon="receipt">Statement</Button>
-                    <Button size="sm" leftIcon="transfer">Make payment</Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+      {tab === 'calculator' && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <Card className="xl:col-span-2">
+            <CardHeader
+              eyebrow="Tools"
+              title="Loan calculator"
+              subtitle="Switch strategy to see live monthly payment, total cost, and profit/interest split."
+              action={<Segmented value={strategy} onChange={setStrategy} items={segItems} />}
+            />
 
-      {/* Calculator + schedule */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader eyebrow="Tools" title="Loan calculator" subtitle="Real-time amortization with first-year breakdown." />
-          <div className="mt-5 space-y-4">
-            <Field label="Principal (USD)">
-              <Input leftIcon="coin" type="number" min="0" step="1000"
-                value={calc.principal} onChange={(e) => setCalc({ ...calc, principal: Number(e.target.value) })} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="APR (%)">
-                <Input type="number" min="0" step="0.05"
-                  value={calc.apr} onChange={(e) => setCalc({ ...calc, apr: Number(e.target.value) })} />
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label={strategy === 'STANDARD' ? 'Loan amount (USD)' : 'Asset price (USD)'}>
+                <Input type="number" min="0" step="100" leftIcon="coin"
+                  value={form.assetPrice}
+                  onChange={(e) => setField('assetPrice', Number(e.target.value))} />
               </Field>
+
+              {strategy === 'MURABAHA' && (
+                <Field label="Profit margin (decimal, e.g. 0.15 = 15%)">
+                  <Input type="number" min="0" step="0.01"
+                    value={form.profitMargin}
+                    onChange={(e) => setField('profitMargin', Number(e.target.value))} />
+                </Field>
+              )}
+
+              {strategy === 'STANDARD' && (
+                <Field label="Annual rate (decimal, e.g. 0.0585 = 5.85%)">
+                  <Input type="number" min="0" step="0.001"
+                    value={form.annualRate}
+                    onChange={(e) => setField('annualRate', Number(e.target.value))} />
+                </Field>
+              )}
+
+              {strategy === 'LEASING' && (
+                <>
+                  <Field label="Annual rate (decimal)">
+                    <Input type="number" min="0" step="0.001"
+                      value={form.annualRate}
+                      onChange={(e) => setField('annualRate', Number(e.target.value))} />
+                  </Field>
+                  <Field label="Residual value (USD)">
+                    <Input type="number" min="0" step="100"
+                      value={form.residualValue}
+                      onChange={(e) => setField('residualValue', Number(e.target.value))} />
+                  </Field>
+                </>
+              )}
+
               <Field label="Term (months)">
-                <Select value={calc.term} onChange={(e) => setCalc({ ...calc, term: Number(e.target.value) })}>
-                  {[60, 120, 180, 240, 360].map((m) => <option key={m} value={m}>{m} months · {m / 12}y</option>)}
+                <Input type="number" min="1" step="1"
+                  value={form.termMonths}
+                  onChange={(e) => setField('termMonths', Number(e.target.value))} />
+              </Field>
+
+              <Field label="Purpose">
+                <Select value={form.purpose} onChange={(e) => setField('purpose', e.target.value)}>
+                  {PURPOSES.map((p) => <option key={p} value={p}>{p.replace('_', ' ')}</option>)}
                 </Select>
               </Field>
             </div>
-            <div className="rounded-xl bg-navy-900 text-white p-4">
-              <div className="text-[11px] uppercase tracking-wider text-graphite-300">Estimated monthly payment</div>
-              <div className="font-display text-3xl font-semibold mt-1 num"><Money value={monthly} /></div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-graphite-300">
-                <div>Total interest · <span className="num text-white"><Money value={totalInterest} /></span></div>
-                <div>Total cost · <span className="num text-white"><Money value={totalPaid} /></span></div>
-              </div>
+
+            <div className="mt-5 flex items-center gap-2">
+              <Button onClick={submit} loading={loading} leftIcon="trendUp">Calculate</Button>
+              {result && (
+                <Button variant="secondary" loading={applying} onClick={applyLoan} leftIcon="check">
+                  Apply for this loan
+                </Button>
+              )}
             </div>
-            <Alert tone="info">Indicative only. Final pricing subject to underwriting and KYC verification.</Alert>
-          </div>
-        </Card>
 
-        <Card className="xl:col-span-2">
-          <CardHeader eyebrow="Amortization" title="First-year schedule" subtitle="Principal vs interest split, month by month." />
-          <div className="mt-4 -mx-2">
-            <BarChart
-              data={schedule.slice(0, 12).map((s) => Math.round(s.interest))}
-              labels={schedule.slice(0, 12).map((s) => `M${s.period}`)}
-              color="#b88a2c"
-              height={170}
-              formatY={(v) => `$${Math.round(v / 100) / 10}k`}
+            {error && <Alert tone="danger" className="mt-4">{error}</Alert>}
+            {message && <Alert tone="success" className="mt-4">{message}</Alert>}
+          </Card>
+
+          <Card>
+            <CardHeader
+              eyebrow="Result"
+              title="Estimated terms"
+              subtitle={result ? `Strategy · ${STRATEGY_LABEL[result.strategyType] || result.strategyType}` : 'Run the calculator to see numbers.'}
             />
-          </div>
-          <div className="mt-4 overflow-x-auto rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800">
-            <table className="data-table">
-              <thead>
-                <tr><th className="!pl-4">Period</th><th>Principal</th><th>Interest</th><th>Balance</th></tr>
-              </thead>
-              <tbody>
-                {schedule.slice(0, 6).map((s) => (
-                  <tr key={s.period}>
-                    <td className="!pl-4 num">M{s.period}</td>
-                    <td className="num"><Money value={s.principalPay} /></td>
-                    <td className="num text-graphite-500"><Money value={s.interest} /></td>
-                    <td className="num font-semibold"><Money value={s.balance} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
 
-      {/* Products */}
-      <div>
-        <h2 className="text-base font-semibold text-navy-900 dark:text-graphite-50 mb-3">Lending products</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {PRODUCTS.map((p) => (
-            <Card key={p.id} className="hover:shadow-elev-2 transition-shadow">
-              <div className="h-9 w-9 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center ring-1 ring-navy-100">
-                <Icon name="loans" size={17} />
+            {!result ? (
+              <div className="mt-5">
+                <EmptyState
+                  icon="loans"
+                  title="No calculation yet"
+                  description="Choose a strategy and fill in the form to see your monthly payment and total cost."
+                />
               </div>
-              <h3 className="mt-3 text-sm font-semibold text-navy-900 dark:text-graphite-50">{p.label}</h3>
-              <p className="text-xs text-graphite-500 mt-1 leading-relaxed">{p.desc}</p>
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <Badge tone="navy">{p.apr}</Badge>
-                <Badge tone="neutral">{p.term}</Badge>
+            ) : (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-xl bg-navy-900 text-white p-4">
+                  <div className="flex items-center gap-2">
+                    <Badge tone={strategyTone(result.strategyType)}>{result.strategyType}</Badge>
+                    {result.strategyType === 'MURABAHA' && (
+                      <Badge tone="success" dot>Zero interest · Sharia-compliant</Badge>
+                    )}
+                  </div>
+                  <div className="text-[11px] uppercase tracking-wider text-graphite-300 mt-3">Monthly payment</div>
+                  <div className="font-display text-3xl font-semibold mt-1 num"><Money value={result.monthlyPayment} /></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800 px-3.5 py-3">
+                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">Asset price</div>
+                    <div className="text-sm font-medium num text-navy-900 dark:text-graphite-100 mt-0.5">
+                      <Money value={result.assetPrice} />
+                    </div>
+                  </div>
+                  <div className="rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800 px-3.5 py-3">
+                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">Total payment</div>
+                    <div className="text-sm font-medium num text-navy-900 dark:text-graphite-100 mt-0.5">
+                      <Money value={result.totalPayment} />
+                    </div>
+                  </div>
+                  <div className="rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800 px-3.5 py-3">
+                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">
+                      {result.strategyType === 'MURABAHA' ? 'Total profit (markup)' : 'Total interest'}
+                    </div>
+                    <div className="text-sm font-medium num text-navy-900 dark:text-graphite-100 mt-0.5">
+                      <Money value={result.strategyType === 'MURABAHA' ? result.totalProfit : result.totalInterest} />
+                    </div>
+                  </div>
+                  <div className="rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800 px-3.5 py-3">
+                    <div className="text-[11px] uppercase tracking-wider text-graphite-500">Term</div>
+                    <div className="text-sm font-medium num text-navy-900 dark:text-graphite-100 mt-0.5">
+                      {result.termMonths} months
+                    </div>
+                  </div>
+                </div>
               </div>
-              <Button size="sm" variant="secondary" rightIcon="arrowRight" className="mt-4 w-full">Learn more</Button>
-            </Card>
-          ))}
+            )}
+          </Card>
         </div>
-      </div>
+      )}
+
+      {tab === 'applications' && (
+        <Card>
+          <CardHeader eyebrow="History" title="My applications" subtitle="All submitted loan applications." />
+          {myLoans.length === 0 ? (
+            <EmptyState
+              icon="receipt"
+              title="No applications yet"
+              description="Run the calculator and click Apply to submit your first loan request."
+            />
+          ) : (
+            <div className="mt-4 space-y-3">
+              {myLoans.map((l) => (
+                <div key={l.id} className="rounded-xl ring-1 ring-graphite-200 dark:ring-graphite-800 px-4 py-3 flex items-center gap-4">
+                  <div className="h-9 w-9 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center ring-1 ring-navy-100">
+                    <Icon name="loans" size={17} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge tone={strategyTone(l.strategyType)}>{l.strategyType}</Badge>
+                      <Badge tone="neutral">{l.purpose || '—'}</Badge>
+                      <span className="text-xs text-graphite-500">{l.termMonths} months</span>
+                    </div>
+                    <div className="mt-1 text-sm text-graphite-700 dark:text-graphite-300">
+                      Asset <span className="num font-semibold"><Money value={l.assetPrice} /></span>
+                      <span className="mx-2 text-graphite-400">·</span>
+                      Monthly <span className="num font-semibold"><Money value={l.monthlyPayment} /></span>
+                    </div>
+                  </div>
+                  <StatusPill status={l.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

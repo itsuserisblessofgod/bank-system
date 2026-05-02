@@ -13,6 +13,8 @@ import Transfer from './pages/Transfer.jsx';
 import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import Notifications from './pages/Notifications.jsx';
+import Loans from './pages/Loans.jsx';
+import Rewards from './pages/Rewards.jsx';
 
 import Admin from './pages/Admin.jsx';
 import FraudAlerts from './pages/FraudAlerts.jsx';
@@ -33,7 +35,8 @@ export default function App() {
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/transfer" element={<Transfer />} />
           <Route path="/cards" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/loans" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/loans" element={<Loans />} />
+          <Route path="/rewards" element={<Rewards />} />
           <Route path="/analytics" element={<Navigate to="/dashboard" replace />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
